@@ -1,6 +1,6 @@
 {
   "name": "@simochee/ghostq",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Restore your gitignored per-repo files automatically on every clone and worktree via a git hook",
   "license": "MIT",
   "repository": {
