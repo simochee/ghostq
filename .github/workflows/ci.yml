@@ -11,9 +11,10 @@ on:
         type: boolean
         default: false
 
-# Standalone CI runs cancel the previous run on the same ref. Runs invoked from
-# release get a distinct group (keyed on from_release), so a release never
-# cancels an in-progress standalone CI run and vice versa.
+# The group is not just github.ref: a reusable workflow keeps the caller's ref,
+# so a release-invoked run and a standalone push run would collide on one group
+# and cancel each other. Splitting on from_release (and disabling cancellation
+# for the release side) isolates a release from concurrent standalone CI.
 concurrency:
   group: ci-${{ inputs.from_release && 'release' || 'standalone' }}-${{ github.ref }}
   cancel-in-progress: ${{ !inputs.from_release }}
