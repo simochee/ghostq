@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { type AdoptOutcome, adoptFiles } from "./adopt.ts";
 import { applyFiles, inspectFiles, pruneFiles, type FileState } from "./apply.ts";
 import { resolveContext } from "./context.ts";
 import { install, uninstall } from "./install.ts";
@@ -9,6 +10,7 @@ const USAGE = `ghostq — re-link personal, gitignored, per-repo files on clone 
 Usage:
   ghostq install           set up the global post-checkout hook (core.hooksPath)
   ghostq apply [path]      link overlay files into the checkout (idempotent)
+  ghostq adopt <file>...   move existing gitignored files into the overlay and link them
   ghostq status [path]     show link states and warnings without changing anything
   ghostq prune [path]      remove dangling ghostq-managed links (idempotent)
   ghostq root              print the overlay root
@@ -57,6 +59,40 @@ async function prune(path: string): Promise<number> {
   return 0;
 }
 
+const ADOPT_NOTES: Record<AdoptOutcome, string> = {
+  adopted: "",
+  "already-adopted": "already linked into the overlay",
+  "skipped-not-ignored": "not gitignored in this repo (add it to .gitignore)",
+  "skipped-conflict": "",
+  "skipped-directory": "pass individual files, not a directory",
+  error: "",
+};
+
+async function adopt(paths: string[]): Promise<number> {
+  const reports = await adoptFiles(paths, process.cwd());
+  let failed = false;
+  for (const { path, outcome, detail } of reports) {
+    switch (outcome) {
+      case "adopted":
+        console.log(`adopted  ${path}${detail ? ` -> ${detail}` : ""}`);
+        break;
+      case "already-adopted":
+        console.log(`ghostq: ${path}: ${ADOPT_NOTES[outcome]}`);
+        break;
+      case "error":
+        console.error(`ghostq: ${path}: ${detail}`);
+        failed = true;
+        break;
+      default: {
+        const note = detail || ADOPT_NOTES[outcome];
+        console.error(`ghostq: skip ${path}: ${note}`);
+        break;
+      }
+    }
+  }
+  return failed ? 1 : 0;
+}
+
 const STATE_NOTES: Record<FileState, string> = {
   linked: "",
   missing: "run `ghostq apply`",
@@ -100,6 +136,12 @@ async function main(): Promise<number> {
       return uninstall();
     case "apply":
       return apply(rest[0] ?? process.cwd());
+    case "adopt":
+      if (rest.length === 0) {
+        console.error("ghostq: adopt requires at least one file");
+        return 1;
+      }
+      return adopt(rest);
     case "status":
       return status(rest[0] ?? process.cwd());
     case "prune":

@@ -81,11 +81,27 @@ ghostq install
 ```
 ghostq install           set up the global post-checkout hook (core.hooksPath)
 ghostq apply [path]      link overlay files into the checkout (idempotent)
+ghostq adopt <file>...   move existing gitignored files into the overlay and link them
 ghostq status [path]     show link states and warnings without changing anything
 ghostq prune [path]      remove dangling ghostq-managed links (idempotent)
 ghostq root              print the overlay root
 ghostq uninstall         remove the hook wiring
 ```
+
+### Adopting an existing file
+
+If a personal file already exists as a real file in your checkout (instead of
+having been set up in the overlay first), `ghostq adopt <file>...` moves it
+into this repo's overlay entry and replaces it with the same kind of symlink
+`apply` would produce — one command instead of manually creating the overlay
+directory and copying the file over.
+
+Each file passed to `adopt` must already be gitignored (`adopt` never adopts a
+tracked file) and must be a real file, not a symlink or a directory — pass
+individual files; ghostq never links whole directories (symlink-each). If the
+overlay already has a file at the target path, or the checkout path is already
+a symlink pointing elsewhere, `adopt` warns and skips it rather than
+clobbering anything.
 
 ## Overlay layout
 
