@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "Restore your gitignored per-repo files automatically on every clone and worktree via a git hook",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/simochee/ghostq.git"
+  },
   "type": "module",
   "bin": {
     "ghostq": "./src/index.ts"
