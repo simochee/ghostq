@@ -43,6 +43,9 @@ output-scraping.
 - `test/apply.test.ts` — behavior of a single apply pass against a throwaway
   git repo: symlink-each, sibling files untouched, idempotency, no-clobber,
   gitignore gating, drift repair.
+- `test/prune.test.ts` — removal of dangling ghostq-managed links: live links
+  and non-ghostq files are left alone, empty parent directories are cleaned
+  up (but not directories with other entries), and pruning is idempotent.
 - `test/e2e.test.ts` — compiles the real binary, then drives real
   `git clone` / `git switch` / `git worktree add` inside an isolated
   HOME / `GIT_CONFIG_GLOBAL` sandbox. Two tricks worth knowing:

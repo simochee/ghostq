@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { applyFiles, inspectFiles, type FileState } from "./apply.ts";
+import { applyFiles, inspectFiles, pruneFiles, type FileState } from "./apply.ts";
 import { resolveContext } from "./context.ts";
 import { install, uninstall } from "./install.ts";
 import { overlayRoot } from "./paths.ts";
@@ -10,6 +10,7 @@ Usage:
   ghostq install           set up the global post-checkout hook (core.hooksPath)
   ghostq apply [path]      link overlay files into the checkout (idempotent)
   ghostq status [path]     show link states and warnings without changing anything
+  ghostq prune [path]      remove dangling ghostq-managed links (idempotent)
   ghostq root              print the overlay root
   ghostq uninstall         remove the hook wiring
 
@@ -39,6 +40,20 @@ async function apply(path: string): Promise<number> {
   }
   const n = report.linked.length + report.relinked.length;
   if (n > 0) console.log(`ghostq: linked ${n} file(s) from ${ctx.identity}`);
+  return 0;
+}
+
+async function prune(path: string): Promise<number> {
+  const res = await resolveContext(path);
+  if (!res.ok) {
+    console.error(`ghostq: ${res.reason}`);
+    return res.fatal ? 1 : 0;
+  }
+  const { ctx } = res;
+
+  const report = await pruneFiles(ctx);
+  for (const rel of report.pruned) console.log(`pruned   ${rel}`);
+  if (report.pruned.length > 0) console.log(`ghostq: pruned ${report.pruned.length} dangling link(s) from ${ctx.identity}`);
   return 0;
 }
 
@@ -87,6 +102,8 @@ async function main(): Promise<number> {
       return apply(rest[0] ?? process.cwd());
     case "status":
       return status(rest[0] ?? process.cwd());
+    case "prune":
+      return prune(rest[0] ?? process.cwd());
     case "root":
       console.log(overlayRoot());
       return 0;
