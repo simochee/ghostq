@@ -59,6 +59,12 @@ skipped quietly.
 - Apply is idempotent: already-correct links are skipped, and an existing real
   file that is not a ghostq-managed link is never clobbered — it is warned
   about and left alone.
+- `apply` only ever creates or repoints links; it never removes one, even
+  after the overlay file behind it is deleted. `ghostq prune` cleans up the
+  resulting dangling link — a symlink that still points into this repo's
+  overlay entry but whose target no longer exists — and removes any parent
+  directory left empty as a result. Live links and non-ghostq files are never
+  touched.
 
 ## Install
 
@@ -76,6 +82,7 @@ ghostq install
 ghostq install           set up the global post-checkout hook (core.hooksPath)
 ghostq apply [path]      link overlay files into the checkout (idempotent)
 ghostq status [path]     show link states and warnings without changing anything
+ghostq prune [path]      remove dangling ghostq-managed links (idempotent)
 ghostq root              print the overlay root
 ghostq uninstall         remove the hook wiring
 ```
