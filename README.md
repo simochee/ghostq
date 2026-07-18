@@ -72,26 +72,14 @@ skipped quietly.
 
 ## Coexisting with lefthook (and other hook managers)
 
-ghostq never sets `core.hooksPath`. It only seeds `.git/hooks/post-checkout` at
-clone time via `init.templateDir`, then gets out of the way. So lefthook, husky,
-pre-commit, and plain `.git/hooks` scripts **install and fire exactly as they
-normally would** — no workaround, no flags, no ordering to remember:
+ghostq doesn't take over your hooks. Install lefthook, husky, pre-commit, or
+your own `.git/hooks` scripts exactly as you normally would — there's nothing
+special to do, and nothing to undo.
 
-```sh
-lefthook install   # just works; ghostq's post-checkout sits alongside its hooks
-```
+Just run `ghostq apply` by hand in two cases:
 
-There is one boundary, and it is a git limitation rather than a ghostq one:
-`git worktree add` runs the single shared `.git/hooks/post-checkout`. If a tool's
-config **also** owns `post-checkout` (e.g. a `post-checkout:` block in
-`lefthook.yml`), that tool takes the slot and ghostq no longer auto-links new
-worktrees of that repo — run `ghostq apply` in the new worktree by hand. The
-clone itself is unaffected, and any other hook (`pre-commit`, `pre-push`,
-`commit-msg`, …) coexists with no caveat at all.
-
-Because the hook rides in on `init.templateDir`, it applies to **new** clones and
-worktrees. For a repo you cloned before installing ghostq, run `ghostq apply`
-once.
+- a repo you cloned **before** installing ghostq
+- a new worktree of a repo whose own hook config also uses `post-checkout`
 
 ## Install
 
