@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.0](https://github.com/simochee/ghostq/compare/ghostq-v1.0.0...ghostq-v1.1.0) (2026-07-18)
+
+
+### Features
+
+* add adopt command to move existing files into the overlay ([#7](https://github.com/simochee/ghostq/issues/7)) ([cee815b](https://github.com/simochee/ghostq/commit/cee815bf67cc0b10f5a88f13b79e180d77eb01f7))
+* add prune command to remove dangling overlay links ([#6](https://github.com/simochee/ghostq/issues/6)) ([a3f961e](https://github.com/simochee/ghostq/commit/a3f961ee3a875e0a5d34826b678c0e5c69973202))
+* **install:** install the hook via init.templateDir so hook managers coexist ([b23f474](https://github.com/simochee/ghostq/commit/b23f4748372dcf467a28b694be63e545886dbfe5))
+
+
+### Bug Fixes
+
+* **install:** migrate off a legacy core.hooksPath install ([9955d78](https://github.com/simochee/ghostq/commit/9955d7821373148c5b7499ffba4374dbed12f9ce))
+
 ## 1.0.0 (2026-07-17)
 
 
