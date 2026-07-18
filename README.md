@@ -111,6 +111,50 @@ coexist with no caveat.
 > `lefthook.yml`), it takes that slot and ghostq won't auto-link **new
 > worktrees** of that repo — run `ghostq apply` in the new worktree by hand.
 > Clones, and every other hook, are unaffected.
+>
+> A second, separate failure mode: some hook managers set a repo-local
+> `core.hooksPath` (husky does this). Since git honours only one hooks
+> directory, that changes which hooks git runs and can keep ghostq's seeded
+> `.git/hooks` hook from firing for that repo — for **clones and worktrees
+> both**, not just new worktrees. Check with `git config --local --get
+> core.hooksPath`; unset it (or reconfigure/migrate off that hook manager) to
+> restore ghostq. lefthook writes into `.git/hooks` directly and sets no
+> `core.hooksPath`, so it isn't affected; other (or newer) managers may differ,
+> so check the config.
+
+## 🩺 Troubleshooting
+
+Personal files not auto-linking on a fresh `git clone` or `git worktree add`?
+Work through these in order — each is a common reason the hook never seeds or
+never fires.
+
+1. **Is ghostq installed?** `git config --get init.templateDir` should print
+   ghostq's template dir (path ending in `ghostq/template`). Empty, or pointing
+   somewhere else, means `ghostq install` never ran (or something overwrote the
+   setting) — run `ghostq install` and clone/`worktree add` again.
+
+2. **Is a repo-local `core.hooksPath` shadowing the seeded hook?**
+   `git config --local --get core.hooksPath` should print **nothing**. If it
+   prints a path, git reads hooks from there instead of `.git/hooks` — where
+   ghostq seeds its `post-checkout` — so ghostq's hook never fires. Some hook
+   managers set this (husky does). Unset it
+   (`git config --local --unset core.hooksPath`) or reconfigure that hook
+   manager, then run `ghostq apply` once. See the
+   [Coexisting](#-coexisting-with-lefthook-and-other-hook-managers) WARNING for
+   the full picture.
+
+3. **Did you clone the repo before installing ghostq?** git templates apply
+   only at clone/init time and are never retroactive, so a checkout that
+   predates `ghostq install` has no seeded hook. Run `ghostq apply` in it once
+   to link the overlay by hand; future clones and worktrees are covered.
+
+4. **Ask ghostq what it sees.** `ghostq status` prints the resolved repo
+   identity, the overlay entry path, and each managed file's link state,
+   changing nothing. Use it to confirm the repo maps to the overlay entry you
+   expect and to spot files that were skipped (e.g. not gitignored) or left
+   alone (a real file where a link would go). A repo with no matching remote
+   identity — no `origin`, or no overlay entry for its `host/user/repo` — is
+   skipped quietly, so that shows up here too.
 
 ## 🛡️ Safety
 
