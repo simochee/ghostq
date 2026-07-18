@@ -9,8 +9,12 @@ export function overlayRoot(): string {
   return process.env.GHOSTQ_ROOT || join(configHome(), "ghostq", "overlay");
 }
 
-export function hooksDir(): string {
-  return join(configHome(), "ghostq", "hooks");
+export function ghostqDir(): string {
+  return join(configHome(), "ghostq");
+}
+
+export function templateDir(): string {
+  return join(configHome(), "ghostq", "template");
 }
 
 export function expandTilde(p: string): string {

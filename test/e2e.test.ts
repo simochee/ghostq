@@ -10,9 +10,10 @@ const bin = join(tmp, "bin", "ghostq");
 const home = join(tmp, "home");
 const xdg = join(home, ".config");
 const gitConfigGlobal = join(home, ".gitconfig");
-const hooksDir = join(xdg, "ghostq", "hooks");
+const templateDir = join(xdg, "ghostq", "template");
+const shimPath = join(templateDir, "hooks", "post-checkout");
 const overlayRoot = join(xdg, "ghostq", "overlay");
-const prevHooks = join(tmp, "prev-hooks");
+const prevTemplate = join(tmp, "prev-template");
 const upstream = join(tmp, "upstream");
 const REMOTE = "https://github.com/testuser/testrepo.git";
 const clone1 = join(tmp, "clone1");
@@ -45,7 +46,7 @@ afterAll(async () => {
 });
 
 describe("ghostq end-to-end", () => {
-  test("setup: upstream repo, overlay entry, and a pre-existing global hooksPath", async () => {
+  test("setup: upstream repo, overlay entry, and a pre-existing init.templateDir", async () => {
     await fs.mkdir(home, { recursive: true });
     for (const [k, v] of Object.entries({
       "user.email": "test@example.com",
@@ -69,26 +70,41 @@ describe("ghostq end-to-end", () => {
       ".env.local": "SECRET=1\n",
     });
 
-    // a hooksPath that predates ghostq install and must keep working
-    await fs.mkdir(prevHooks, { recursive: true });
+    // a template that predates ghostq install: its info/exclude must survive
+    // the override, and its post-checkout must keep firing (chained)
+    await fs.mkdir(join(prevTemplate, "info"), { recursive: true });
+    await fs.mkdir(join(prevTemplate, "hooks"), { recursive: true });
+    await fs.writeFile(join(prevTemplate, "info", "exclude"), "# custom-prev-template\n");
     await fs.writeFile(
-      join(prevHooks, "post-checkout"),
-      `#!/bin/sh\ntouch prev-global-hook-ran\n`,
+      join(prevTemplate, "hooks", "post-checkout"),
+      `#!/bin/sh\ntouch prev-template-hook-ran\n`,
       { mode: 0o755 },
     );
-    run("git", ["config", "--global", "core.hooksPath", prevHooks], { env: ENV });
+    run("git", ["config", "--global", "init.templateDir", prevTemplate], { env: ENV });
   });
 
-  test("install sets core.hooksPath and records the previous one", async () => {
+  test("install sets init.templateDir, records the previous one, never touches core.hooksPath", async () => {
     const r = ghostq(["install"]);
     expect(r.status).toBe(0);
-    expect(gitConfig("core.hooksPath")).toBe(hooksDir);
-    const shim = await fs.readFile(join(hooksDir, "post-checkout"), "utf8");
+    expect(gitConfig("init.templateDir")).toBe(templateDir);
+    // ghostq must stay out of the hooks path so lefthook/husky/... coexist
+    expect(gitConfig("core.hooksPath")).toBe("");
+    const shim = await fs.readFile(shimPath, "utf8");
     expect(shim.startsWith("#!/bin/sh")).toBe(true);
-    expect(shim).toContain(prevHooks);
   });
 
-  test("git clone triggers apply: overlay files are linked, siblings intact", async () => {
+  test("install seeds the previous template and preserves its post-checkout as .ghostq-orig", async () => {
+    // the seed captured the pre-existing template so a clone keeps its files
+    expect(await fs.readFile(join(templateDir, "info", "exclude"), "utf8")).toContain(
+      "custom-prev-template",
+    );
+    // the foreign post-checkout was set aside for the shim to chain to
+    const orig = await fs.readFile(join(templateDir, "hooks", "post-checkout.ghostq-orig"), "utf8");
+    expect(orig).toContain("prev-template-hook-ran");
+    expect(await fs.readFile(shimPath, "utf8")).toContain("post-checkout.ghostq-orig");
+  });
+
+  test("git clone triggers apply: overlay linked, siblings intact, template seeded, prev hook chained", async () => {
     runGit(["clone", "-q", REMOTE, clone1], tmp, ENV);
 
     expect(runGit(["config", "remote.origin.url"], clone1, ENV)).toBe(REMOTE);
@@ -97,8 +113,12 @@ describe("ghostq end-to-end", () => {
     expect(await fs.readFile(link, "utf8")).toBe("my notes\n");
     expect((await fs.lstat(join(clone1, ".env.local"))).isSymbolicLink()).toBe(true);
     expect((await fs.lstat(join(clone1, ".claude", "settings.json"))).isFile()).toBe(true);
-    // the pre-existing global hook was chained during the clone checkout
-    expect((await fs.stat(join(clone1, "prev-global-hook-ran"))).isFile()).toBe(true);
+    // the seeded template gave the clone a normal .git/info/exclude ...
+    expect(await fs.readFile(join(clone1, ".git", "info", "exclude"), "utf8")).toContain(
+      "custom-prev-template",
+    );
+    // ... and the pre-existing template's post-checkout was chained
+    expect((await fs.stat(join(clone1, "prev-template-hook-ran"))).isFile()).toBe(true);
   });
 
   test("ordinary git switch does not re-apply (null-ref sh gate)", async () => {
@@ -111,17 +131,24 @@ describe("ghostq end-to-end", () => {
     expect(fs.lstat(join(clone1, ".env.local"))).rejects.toThrow();
   });
 
-  test("the dispatcher chains to a repo-local post-checkout hook", async () => {
+  test("a repo-local hook manager coexists: .git/hooks/pre-commit fires (nothing is shadowed)", async () => {
+    // ghostq sets no core.hooksPath, so git uses the repo's own .git/hooks and
+    // any hook a manager installs there keeps working, ghostq's post-checkout
+    // sitting alongside it
     await fs.writeFile(
-      join(clone1, ".git", "hooks", "post-checkout"),
-      `#!/bin/sh\ntouch repo-local-hook-ran\n`,
+      join(clone1, ".git", "hooks", "pre-commit"),
+      `#!/bin/sh\ntouch repo-local-precommit-ran\n`,
       { mode: 0o755 },
     );
+    await fs.writeFile(join(clone1, "extra.txt"), "x\n");
+    runGit(["add", "extra.txt"], clone1, ENV);
+    runGit(["commit", "-q", "-m", "extra"], clone1, ENV);
 
-    runGit(["switch", "-q", "feature"], clone1, ENV);
+    expect((await fs.stat(join(clone1, "repo-local-precommit-ran"))).isFile()).toBe(true);
+    // ghostq's own post-checkout is still present, unclobbered
+    expect((await fs.stat(join(clone1, ".git", "hooks", "post-checkout"))).isFile()).toBe(true);
 
-    expect((await fs.stat(join(clone1, "repo-local-hook-ran"))).isFile()).toBe(true);
-    runGit(["switch", "-q", "main"], clone1, ENV);
+    await fs.unlink(join(clone1, ".git", "hooks", "pre-commit"));
   });
 
   test("git worktree add triggers apply in the new worktree", async () => {
@@ -151,10 +178,10 @@ describe("ghostq end-to-end", () => {
     expect(second.stdout).not.toContain("linked ");
   });
 
-  test("uninstall restores the previous core.hooksPath", async () => {
+  test("uninstall restores the previous init.templateDir", async () => {
     const r = ghostq(["uninstall"]);
     expect(r.status).toBe(0);
-    expect(gitConfig("core.hooksPath")).toBe(prevHooks);
-    expect(fs.stat(join(hooksDir, "post-checkout"))).rejects.toThrow();
+    expect(gitConfig("init.templateDir")).toBe(prevTemplate);
+    expect(fs.stat(shimPath)).rejects.toThrow();
   });
 });

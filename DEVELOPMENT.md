@@ -25,9 +25,9 @@ src/
   context.ts    repo root + remote → identity → overlay entry resolution
   identity.ts   remote URL → host/user/repo normalization (pure function)
   apply.ts      per-file state inspection and symlink-each application
-  install.ts    hook install/uninstall; generates the POSIX sh dispatcher
+  install.ts    hook install/uninstall via init.templateDir; the POSIX sh hook
   git.ts        spawnSync wrapper around the git CLI
-  paths.ts      overlay root / hooks dir / XDG resolution
+  paths.ts      overlay root / template dir / XDG resolution
 ```
 
 Commands print from `index.ts` only; the modules underneath return data. That

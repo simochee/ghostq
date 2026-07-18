@@ -15,10 +15,19 @@ Verify every change with `bun test` and `bun run typecheck` before finishing.
    ghostq binary must never be spawned on an ordinary `git switch` /
    `git checkout` — only when the previous HEAD is the null ref with the
    branch flag set (fresh clone / `git worktree add`).
-2. **The dispatcher always chains** to the previously configured global
-   hooksPath and to the repo-local `.git/hooks/post-checkout` before its own
-   gate. `core.hooksPath` shadows both, so dropping the chaining silently
-   breaks lefthook/project hooks.
+2. **Install via `init.templateDir`, never `core.hooksPath`.** ghostq seeds a
+   single `post-checkout` into `.git/hooks` at clone/init time and then stays out
+   of the hooks path, so lefthook/husky/pre-commit/plain scripts install into
+   `.git/hooks` and fire untouched — no shims, no forwarding. Setting
+   `core.hooksPath` would shadow every repo-local hook and trip those tools'
+   install guards; that is exactly the coexistence bug this design avoids. The
+   template must also seed git's default files (`info/exclude`, `description`,
+   sample hooks) so the override doesn't silently strip them from clones, and
+   preserve any foreign `post-checkout` it displaces as `post-checkout.ghostq-orig`,
+   chaining to it. Accepted limitation: `git worktree add` runs the one shared
+   `.git/hooks/post-checkout`, so a tool whose config also owns `post-checkout`
+   displaces ghostq for new worktrees of that repo (manual `ghostq apply`) — a
+   git single-slot limitation, not one to design around.
 3. **Zero runtime dependency on ghq.** Never import ghq, shell out to it, or
    read `~/ghq`. The `host/user/repo` layout is computed independently from
    the remote URL.

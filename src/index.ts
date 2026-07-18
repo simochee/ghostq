@@ -8,7 +8,7 @@ import { overlayRoot } from "./paths.ts";
 const USAGE = `ghostq — re-link personal, gitignored, per-repo files on clone / worktree add
 
 Usage:
-  ghostq install           set up the global post-checkout hook (core.hooksPath)
+  ghostq install           install the post-checkout hook globally (init.templateDir)
   ghostq apply [path]      link overlay files into the checkout (idempotent)
   ghostq adopt <file>...   move existing gitignored files into the overlay and link them
   ghostq status [path]     show link states and warnings without changing anything

@@ -26,15 +26,19 @@ on its own.
 
 ## How it works
 
-1. `ghostq install` sets a global `core.hooksPath` pointing at a generated
-   `post-checkout` dispatcher.
-2. The dispatcher is pure POSIX sh. On every checkout it first chains to any
-   hook it shadows (a previously configured global hooksPath, and the
-   repo-local `.git/hooks/post-checkout` used by lefthook and friends), then
-   gates on the null-ref fast path: only a fresh `git clone` or
+1. `ghostq install` sets a global `init.templateDir` — the directory git copies
+   into `.git/` on every `git clone` and `git init`. ghostq's template carries a
+   single `post-checkout` hook (and a seeded copy of git's default template, so
+   clones still get their usual `.git/info/exclude`, `description`, and sample
+   hooks). Crucially, ghostq does **not** set `core.hooksPath`.
+2. The hook is pure POSIX sh. Because it is copied into the repo's own
+   `.git/hooks/` and ghostq never claims `core.hooksPath`, git keeps using
+   `.git/hooks/` normally — so lefthook, husky, pre-commit, and plain scripts
+   install right alongside it and fire untouched, no shims or forwarding needed.
+   The hook gates on the null-ref fast path: only a fresh `git clone` or
    `git worktree add` reports the all-zeros ref as the previous HEAD. Ordinary
-   `git switch` / `git checkout` exits right there — the `ghostq` binary is
-   never spawned on the hot path.
+   `git switch` / `git checkout` exits right there — the `ghostq` binary is never
+   spawned on the hot path.
 3. On a fresh clone / worktree, `ghostq apply` runs:
    - resolves the repo's identity from `remote.origin.url`, normalized to
      `host/user/repo` (https, scp-like SSH, trailing `.git`, ports and
@@ -66,6 +70,29 @@ skipped quietly.
   directory left empty as a result. Live links and non-ghostq files are never
   touched.
 
+## Coexisting with lefthook (and other hook managers)
+
+ghostq never sets `core.hooksPath`. It only seeds `.git/hooks/post-checkout` at
+clone time via `init.templateDir`, then gets out of the way. So lefthook, husky,
+pre-commit, and plain `.git/hooks` scripts **install and fire exactly as they
+normally would** — no workaround, no flags, no ordering to remember:
+
+```sh
+lefthook install   # just works; ghostq's post-checkout sits alongside its hooks
+```
+
+There is one boundary, and it is a git limitation rather than a ghostq one:
+`git worktree add` runs the single shared `.git/hooks/post-checkout`. If a tool's
+config **also** owns `post-checkout` (e.g. a `post-checkout:` block in
+`lefthook.yml`), that tool takes the slot and ghostq no longer auto-links new
+worktrees of that repo — run `ghostq apply` in the new worktree by hand. The
+clone itself is unaffected, and any other hook (`pre-commit`, `pre-push`,
+`commit-msg`, …) coexists with no caveat at all.
+
+Because the hook rides in on `init.templateDir`, it applies to **new** clones and
+worktrees. For a repo you cloned before installing ghostq, run `ghostq apply`
+once.
+
 ## Install
 
 ghostq ships as a single self-contained binary — no runtime needed on the
@@ -79,7 +106,7 @@ ghostq install
 ## Usage
 
 ```
-ghostq install           set up the global post-checkout hook (core.hooksPath)
+ghostq install           install the post-checkout hook globally (init.templateDir)
 ghostq apply [path]      link overlay files into the checkout (idempotent)
 ghostq adopt <file>...   move existing gitignored files into the overlay and link them
 ghostq status [path]     show link states and warnings without changing anything
