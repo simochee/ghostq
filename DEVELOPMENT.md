@@ -11,7 +11,7 @@ and the test suite drives the real git on your machine.
 ## Commands
 
 ```sh
-bun install            # dependencies (dev-only; the tool itself has none)
+bun install            # dependencies (commander for CLI parsing, bundled into the binary)
 bun test               # unit + end-to-end suite
 bun run typecheck      # tsc --noEmit
 bun run build          # bun build --compile → dist/ghostq (single binary)

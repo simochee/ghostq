@@ -48,6 +48,9 @@ ghostq status [path]     show link states and warnings without changing anything
 ghostq prune [path]      remove dangling ghostq-managed links (idempotent)
 ghostq root              print the overlay root
 ghostq uninstall         remove the hook wiring
+
+ghostq -v, --version     print the version
+ghostq -h, --help        show usage (works on any subcommand too)
 ```
 
 ### Adopting an existing file

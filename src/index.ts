@@ -1,23 +1,11 @@
 #!/usr/bin/env bun
+import { Command } from "commander";
+import pkg from "../package.json" with { type: "json" };
 import { type AdoptOutcome, adoptFiles } from "./adopt.ts";
-import { applyFiles, inspectFiles, pruneFiles, type FileState } from "./apply.ts";
+import { applyFiles, type FileState, inspectFiles, pruneFiles } from "./apply.ts";
 import { resolveContext } from "./context.ts";
 import { install, uninstall } from "./install.ts";
 import { overlayRoot } from "./paths.ts";
-
-const USAGE = `ghostq — re-link personal, gitignored, per-repo files on clone / worktree add
-
-Usage:
-  ghostq install           install the post-checkout hook globally (init.templateDir)
-  ghostq apply [path]      link overlay files into the checkout (idempotent)
-  ghostq adopt <file>...   move existing gitignored files into the overlay and link them
-  ghostq status [path]     show link states and warnings without changing anything
-  ghostq prune [path]      remove dangling ghostq-managed links (idempotent)
-  ghostq root              print the overlay root
-  ghostq uninstall         remove the hook wiring
-
-Overlay root: $GHOSTQ_ROOT or \${XDG_CONFIG_HOME:-~/.config}/ghostq/overlay,
-laid out as <root>/<host>/<user>/<repo>/ mirroring each repo's remote URL.`;
 
 async function apply(path: string): Promise<number> {
   const res = await resolveContext(path);
@@ -127,39 +115,64 @@ async function status(path: string): Promise<number> {
   return 0;
 }
 
-async function main(): Promise<number> {
-  const [cmd, ...rest] = process.argv.slice(2);
-  switch (cmd) {
-    case "install":
-      return install();
-    case "uninstall":
-      return uninstall();
-    case "apply":
-      return apply(rest[0] ?? process.cwd());
-    case "adopt":
-      if (rest.length === 0) {
-        console.error("ghostq: adopt requires at least one file");
-        return 1;
-      }
-      return adopt(rest);
-    case "status":
-      return status(rest[0] ?? process.cwd());
-    case "prune":
-      return prune(rest[0] ?? process.cwd());
-    case "root":
-      console.log(overlayRoot());
-      return 0;
-    case undefined:
-    case "help":
-    case "-h":
-    case "--help":
-      console.log(USAGE);
-      return cmd === undefined ? 1 : 0;
-    default:
-      console.error(`ghostq: unknown command: ${cmd}`);
-      console.error(USAGE);
-      return 1;
-  }
-}
+const program = new Command();
 
-process.exit(await main());
+program
+  .name("ghostq")
+  .description("re-link personal, gitignored, per-repo files on clone / worktree add")
+  .version(pkg.version, "-v, --version", "print the version");
+
+program
+  .command("install")
+  .description("install the post-checkout hook globally (init.templateDir)")
+  .action(async () => {
+    process.exit(await install());
+  });
+
+program
+  .command("uninstall")
+  .description("remove the hook wiring")
+  .action(async () => {
+    process.exit(await uninstall());
+  });
+
+program
+  .command("apply")
+  .description("link overlay files into the checkout (idempotent)")
+  .argument("[path]", "repo path (defaults to cwd)")
+  .action(async (path?: string) => {
+    process.exit(await apply(path ?? process.cwd()));
+  });
+
+program
+  .command("adopt")
+  .description("move existing gitignored files into the overlay and link them")
+  .argument("<files...>", "one or more files to adopt")
+  .action(async (files: string[]) => {
+    process.exit(await adopt(files));
+  });
+
+program
+  .command("status")
+  .description("show link states and warnings without changing anything")
+  .argument("[path]", "repo path (defaults to cwd)")
+  .action(async (path?: string) => {
+    process.exit(await status(path ?? process.cwd()));
+  });
+
+program
+  .command("prune")
+  .description("remove dangling ghostq-managed links (idempotent)")
+  .argument("[path]", "repo path (defaults to cwd)")
+  .action(async (path?: string) => {
+    process.exit(await prune(path ?? process.cwd()));
+  });
+
+program
+  .command("root")
+  .description("print the overlay root")
+  .action(() => {
+    console.log(overlayRoot());
+  });
+
+await program.parseAsync();
