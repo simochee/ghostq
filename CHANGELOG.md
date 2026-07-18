@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/simochee/ghostq/compare/ghostq-v1.1.0...ghostq-v1.2.0) (2026-07-18)
+
+
+### Features
+
+* use commander for CLI parsing ([a8dcff5](https://github.com/simochee/ghostq/commit/a8dcff5a29bab6a4b9f7b95f6864df8d4fb02337))
+* use commander for CLI parsing ([f449a41](https://github.com/simochee/ghostq/commit/f449a415e71ed13900d24e81ba5e62d421c8ca2a))
+
 ## [1.1.0](https://github.com/simochee/ghostq/compare/ghostq-v1.0.0...ghostq-v1.1.0) (2026-07-18)
 
 
