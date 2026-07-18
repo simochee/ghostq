@@ -74,12 +74,17 @@ skipped quietly.
 
 ghostq doesn't take over your hooks. Install lefthook, husky, pre-commit, or
 your own `.git/hooks` scripts exactly as you normally would — there's nothing
-special to do, and nothing to undo.
+special to do, and nothing to undo. Hooks like `pre-commit` and `pre-push`
+coexist with no caveat.
 
-Just run `ghostq apply` by hand in two cases:
+**Limitation.** `git worktree add` runs a single shared
+`.git/hooks/post-checkout`. If your own hook config *also* uses `post-checkout`
+(e.g. a `post-checkout:` block in `lefthook.yml`), it takes that slot and ghostq
+won't auto-link **new worktrees** of that repo — run `ghostq apply` in the new
+worktree by hand. Clones, and every other hook, are unaffected.
 
-- a repo you cloned **before** installing ghostq
-- a new worktree of a repo whose own hook config also uses `post-checkout`
+Separately, for a repo you cloned **before** installing ghostq, run
+`ghostq apply` once.
 
 ## Install
 
