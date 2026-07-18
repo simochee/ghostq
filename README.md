@@ -40,14 +40,23 @@ run `ghostq apply` in it once.
 
 ## 📖 Commands
 
+<!-- Pasted verbatim from `ghostq --help`. Re-run it and update this block whenever the CLI changes. -->
+
 ```
-ghostq install           install the post-checkout hook globally (init.templateDir)
-ghostq apply [path]      link overlay files into the checkout (idempotent)
-ghostq adopt <file>...   move existing gitignored files into the overlay and link them
-ghostq status [path]     show link states and warnings without changing anything
-ghostq prune [path]      remove dangling ghostq-managed links (idempotent)
-ghostq root              print the overlay root
-ghostq uninstall         remove the hook wiring
+Usage: ghostq [options] [command]
+
+re-link personal, gitignored, per-repo files on clone / worktree add
+
+Commands:
+  install           install the post-checkout hook globally (init.templateDir)
+  uninstall         remove the hook wiring
+  apply [path]      link overlay files into the checkout (idempotent)
+  adopt <files...>  move existing gitignored files into the overlay and link
+                    them
+  status [path]     show link states and warnings without changing anything
+  prune [path]      remove dangling ghostq-managed links (idempotent)
+  root              print the overlay root
+  help [command]    display help for command
 ```
 
 ### Adopting an existing file

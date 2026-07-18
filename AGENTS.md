@@ -49,8 +49,10 @@ The e2e suite encodes these invariants; a change that makes
 
 ## Conventions
 
-- Runtime dependencies: none, and keep it that way. git is invoked via
-  `spawnSync`.
+- Runtime dependencies: only `commander`, for CLI argument parsing in
+  `src/index.ts`. It is bundled into the compiled binary, so the distributed
+  artifact still needs no external runtime. Keep the dependency list minimal —
+  don't add more without good reason. git is invoked via `spawnSync`.
 - Only `src/index.ts` prints; other modules return data structures.
 - Where information belongs: code says How, tests say What (spec-style test
   names), commit bodies say Why, code comments say only Why-not (why the

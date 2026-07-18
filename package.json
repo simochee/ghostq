@@ -1,27 +1,30 @@
 {
   "name": "@simochee/ghostq",
   "version": "1.1.0",
-  "description": "Restore your gitignored per-repo files automatically on every clone and worktree via a git hook",
-  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/simochee/ghostq.git"
-  },
-  "type": "module",
-  "engines": {
-    "bun": "1.3"
-  },
-  "bin": {
-    "ghostq": "./src/index.ts"
-  },
-  "scripts": {
-    "build": "bun build --compile ./src/index.ts --outfile dist/ghostq",
-    "test": "bun test",
-    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@tsconfig/bun": "^1.0.10",
     "@types/bun": "^1.2.0",
     "typescript": "^7"
+  },
+  "bin": {
+    "ghostq": "./src/index.ts"
+  },
+  "description": "Restore your gitignored per-repo files automatically on every clone and worktree via a git hook",
+  "engines": {
+    "bun": "1.3"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "bun build --compile ./src/index.ts --outfile dist/ghostq",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module",
+  "dependencies": {
+    "commander": "^15.0.0"
   }
 }
