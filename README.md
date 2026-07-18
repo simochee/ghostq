@@ -1,18 +1,25 @@
-# ghostq
+<div align="center">
 
+# 👻 ghostq
+
+**Your personal per-repo files, restored automatically on every clone and worktree.**
+
+[![CI](https://github.com/simochee/ghostq/actions/workflows/ci.yml/badge.svg)](https://github.com/simochee/ghostq/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/%40simochee%2Fghostq)](https://www.npmjs.com/package/@simochee/ghostq)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![runtime: Bun](https://img.shields.io/badge/runtime-Bun-black?logo=bun)](https://bun.sh)
 
-Restore your gitignored per-repo files automatically on every clone and
-worktree via a git hook.
+</div>
 
 Your personal files — `.claude/` notes, `.env.local`, editor scratch configs —
 live in a separate **overlay tree** (a stable source of truth). `ghostq`
 symlinks them into the real checkout via a git `post-checkout` hook, so a fresh
 clone or `git worktree add` comes up with your personal files already in place.
 
-## Getting started
+No more re-creating `.env.local` by hand every time you clone. No more losing
+your scratch configs to a new worktree.
+
+## ⚡ Quick start
 
 ghostq ships as a single self-contained binary — no runtime needed on the
 machine that runs it. Build it once (see [DEVELOPMENT.md](./DEVELOPMENT.md)) or
@@ -31,7 +38,7 @@ Every fresh `git clone` or `git worktree add` of that repo now restores
 `.env.local` automatically. For a repo you cloned **before** installing ghostq,
 run `ghostq apply` in it once.
 
-## Usage
+## 📖 Commands
 
 ```
 ghostq install           install the post-checkout hook globally (init.templateDir)
@@ -58,7 +65,7 @@ overlay already has a file at the target path, or the checkout path is already
 a symlink pointing elsewhere, `adopt` warns and skips it rather than
 clobbering anything.
 
-## Overlay layout
+## 🗂️ Overlay layout
 
 Default overlay root: `${XDG_CONFIG_HOME:-~/.config}/ghostq/overlay`,
 overridable with `GHOSTQ_ROOT`.
@@ -76,7 +83,7 @@ overridable with `GHOSTQ_ROOT`.
 Making the overlay root itself a git repo is recommended (not required) so
 your personal files are versioned and sync across machines.
 
-## How it works
+## 🔧 How it works
 
 - On a fresh `git clone` or `git worktree add`, ghostq looks up an overlay
   entry by the repo's remote identity (`host/user/repo`) and symlinks its files
@@ -91,20 +98,21 @@ How the hook itself is wired (`init.templateDir`, the null-ref gate, migration
 from older versions) is an implementation detail — see
 [DEVELOPMENT.md](./DEVELOPMENT.md).
 
-## Coexisting with lefthook (and other hook managers)
+## 🤝 Coexisting with lefthook (and other hook managers)
 
 ghostq doesn't take over your hooks. Install lefthook, husky, pre-commit, or
 your own `.git/hooks` scripts exactly as you normally would — there's nothing
 special to do, and nothing to undo. Hooks like `pre-commit` and `pre-push`
 coexist with no caveat.
 
-**Limitation.** `git worktree add` runs a single shared
-`.git/hooks/post-checkout`. If your own hook config *also* uses `post-checkout`
-(e.g. a `post-checkout:` block in `lefthook.yml`), it takes that slot and ghostq
-won't auto-link **new worktrees** of that repo — run `ghostq apply` in the new
-worktree by hand. Clones, and every other hook, are unaffected.
+> [!WARNING]
+> `git worktree add` runs a single shared `.git/hooks/post-checkout`. If your
+> own hook config *also* uses `post-checkout` (e.g. a `post-checkout:` block in
+> `lefthook.yml`), it takes that slot and ghostq won't auto-link **new
+> worktrees** of that repo — run `ghostq apply` in the new worktree by hand.
+> Clones, and every other hook, are unaffected.
 
-## Safety
+## 🛡️ Safety
 
 - Before linking, each target path is checked with `git check-ignore`; a path
   that is not gitignored is warned about and skipped, so ghostq never dirties
@@ -119,7 +127,7 @@ worktree by hand. Clones, and every other hook, are unaffected.
   directory left empty as a result. Live links and non-ghostq files are never
   touched.
 
-## ghq-shaped, not ghq-bound
+## 🧭 ghq-shaped, not ghq-bound
 
 The overlay tree mirrors the same `host/user/repo` layout that
 [ghq](https://github.com/x-motemen/ghq) uses — ghq's directory-structure
@@ -131,7 +139,7 @@ installed. ghostq arrives at the `host/user/repo` layout independently, by
 normalizing the repo's remote URL — the same transform ghq performs, computed
 on its own.
 
-## Non-goals
+## 🚫 Non-goals
 
 - No dependency on or integration with ghq at runtime.
 - Not a general dotfiles / home manager. ghostq is specifically the per-repo
@@ -139,7 +147,7 @@ on its own.
 - Committed or shared files are out of scope — only personal, gitignored,
   per-repo files.
 
-## Contributing
+## 💛 Contributing
 
 Build, test, and architecture notes live in [DEVELOPMENT.md](./DEVELOPMENT.md).
 Guidance for AI coding agents lives in [AGENTS.md](./AGENTS.md).
