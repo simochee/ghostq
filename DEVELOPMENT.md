@@ -35,6 +35,31 @@ is what makes `apply` and `status` share one inspection pass
 (`inspectFiles`) and keeps the tests assertion-based instead of
 output-scraping.
 
+## Hook installation (init.templateDir)
+
+`ghostq install` sets a global `init.templateDir`, not `core.hooksPath`. git
+copies that template into `.git/` on every clone / `git init`, seeding a
+`post-checkout` hook — and ghostq then stays out of the hooks path, so a repo's
+own `.git/hooks` (lefthook, husky, pre-commit, plain scripts) keep working. A
+global `core.hooksPath` would instead shadow every repo-local hook and trip
+those tools' install guards; avoiding it is the whole point (AGENTS.md invariant
+2 spells out why).
+
+- **Seeding.** Overriding `init.templateDir` would otherwise drop git's default
+  template, so install first reproduces the currently-effective template (the
+  user's own, or git's built-in) via a throwaway `git init` and copies its
+  `info/`, `description`, and sample hooks in — clones keep their usual
+  `.git/info/exclude` and friends.
+- **The hook** is pure POSIX sh and gates on the null-ref fast path: only a
+  fresh clone / `git worktree add` reports the all-zeros previous HEAD with the
+  branch flag set, so an ordinary switch/checkout never spawns the binary. A
+  `post-checkout` the template already carried is preserved as
+  `post-checkout.ghostq-orig` and chained.
+- **Migration.** install/uninstall detect a legacy `core.hooksPath` still
+  pointing at ghostq's old hooks dir, restore the hooksPath it had recorded (or
+  unset it), and remove the stale dir — otherwise that leftover config keeps
+  shadowing the template hook after an upgrade.
+
 ## How the tests are structured
 
 - `test/identity.test.ts` — table-driven spec of URL normalization: https,
