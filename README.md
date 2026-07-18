@@ -98,7 +98,7 @@ How the hook itself is wired (`init.templateDir`, the null-ref gate, migration
 from older versions) is an implementation detail — see
 [DEVELOPMENT.md](./DEVELOPMENT.md).
 
-## 🤝 Coexisting with lefthook (and other hook managers)
+## 🤝 Coexisting with hook managers
 
 ghostq doesn't take over your hooks. Install lefthook, husky, pre-commit, or
 your own `.git/hooks` scripts exactly as you normally would — there's nothing
@@ -140,7 +140,7 @@ never fires.
    managers set this (husky does). Unset it
    (`git config --local --unset core.hooksPath`) or reconfigure that hook
    manager, then run `ghostq apply` once. See the
-   [Coexisting](#-coexisting-with-lefthook-and-other-hook-managers) WARNING for
+   [Coexisting](#-coexisting-with-hook-managers) WARNING for
    the full picture.
 
 3. **Did you clone the repo before installing ghostq?** git templates apply
