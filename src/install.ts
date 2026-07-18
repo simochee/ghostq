@@ -20,6 +20,25 @@ async function exists(p: string): Promise<boolean> {
   );
 }
 
+// Undo a legacy core.hooksPath-based install (ghostq before it moved to
+// init.templateDir). That global core.hooksPath makes git look ONLY there,
+// shadowing .git/hooks — so leaving it set would keep overriding the new
+// template hook and silently preserve the old coexistence bug for upgraders.
+// Restore the core.hooksPath ghostq had recorded, then drop the stale dir.
+async function migrateLegacyHooksPath(): Promise<boolean> {
+  const legacyHooks = join(ghostqDir(), "hooks");
+  const chp = git(["config", "--global", "--get", "core.hooksPath"]);
+  if (chp.status !== 0 || !samePath(chp.stdout, legacyHooks)) return false;
+
+  const legacyPrev = (
+    await fs.readFile(join(legacyHooks, "prev-hookspath"), "utf8").catch(() => "")
+  ).trim();
+  if (legacyPrev !== "") git(["config", "--global", "core.hooksPath", legacyPrev]);
+  else git(["config", "--global", "--unset", "core.hooksPath"]);
+  await fs.rm(legacyHooks, { recursive: true, force: true });
+  return true;
+}
+
 // ghostq hooks via init.templateDir, NOT core.hooksPath. Why-not core.hooksPath:
 // git honours only one hooks directory, so a global core.hooksPath shadows every
 // repo-local .git/hooks and forces ghostq to multiplex every hook AND trips the
@@ -112,6 +131,10 @@ export async function install(): Promise<number> {
   const hooks = join(dir, "hooks");
   const stateFile = join(ghostqDir(), PREV_STATE_FILE);
 
+  if (await migrateLegacyHooksPath()) {
+    console.log("migrated off the legacy core.hooksPath install");
+  }
+
   const current = git(["config", "--global", "--get", "init.templateDir"]);
   let prev = "";
   if (current.status === 0 && current.stdout !== "" && !samePath(current.stdout, dir)) {
@@ -168,6 +191,10 @@ export async function uninstall(): Promise<number> {
     }
   } else {
     console.log("global init.templateDir is not managed by ghostq; leaving it as is");
+  }
+
+  if (await migrateLegacyHooksPath()) {
+    console.log("also removed the legacy core.hooksPath install");
   }
 
   await fs.rm(dir, { recursive: true, force: true });

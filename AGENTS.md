@@ -27,7 +27,10 @@ Verify every change with `bun test` and `bun run typecheck` before finishing.
    chaining to it. Accepted limitation: `git worktree add` runs the one shared
    `.git/hooks/post-checkout`, so a tool whose config also owns `post-checkout`
    displaces ghostq for new worktrees of that repo (manual `ghostq apply`) — a
-   git single-slot limitation, not one to design around.
+   git single-slot limitation, not one to design around. `install`/`uninstall`
+   must also migrate off a legacy core.hooksPath install (ghostq before this
+   switch): a leftover global core.hooksPath keeps shadowing `.git/hooks` and
+   would silently defeat the template hook for upgraders.
 3. **Zero runtime dependency on ghq.** Never import ghq, shell out to it, or
    read `~/ghq`. The `host/user/repo` layout is computed independently from
    the remote URL.

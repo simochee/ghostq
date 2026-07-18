@@ -185,3 +185,51 @@ describe("ghostq end-to-end", () => {
     expect(fs.stat(shimPath)).rejects.toThrow();
   });
 });
+
+describe("ghostq migration from a legacy core.hooksPath install", () => {
+  // simulate a ghostq that predates the init.templateDir switch: it set a
+  // global core.hooksPath pointing at ~/.config/ghostq/hooks
+  async function setUpLegacy(name: string, legacyPrevHooksPath: string) {
+    const h = join(tmp, name);
+    const x = join(h, ".config");
+    const env = {
+      HOME: h,
+      XDG_CONFIG_HOME: x,
+      GIT_CONFIG_GLOBAL: join(h, ".gitconfig"),
+      GIT_CONFIG_NOSYSTEM: "1",
+      GHOSTQ_ROOT: undefined,
+    };
+    await fs.mkdir(h, { recursive: true });
+    run("git", ["config", "--global", "user.email", "t@e.com"], { env });
+    const legacyHooks = join(x, "ghostq", "hooks");
+    await fs.mkdir(legacyHooks, { recursive: true });
+    await fs.writeFile(join(legacyHooks, "post-checkout"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+    await fs.writeFile(join(legacyHooks, "prev-hookspath"), legacyPrevHooksPath);
+    run("git", ["config", "--global", "core.hooksPath", legacyHooks], { env });
+    return { env, x, legacyHooks };
+  }
+
+  const get = (env: Record<string, string | undefined>, key: string) =>
+    run("git", ["config", "--global", "--get", key], { env }).stdout.trim();
+
+  test("install unsets the legacy core.hooksPath and removes its dir", async () => {
+    const { env, x, legacyHooks } = await setUpLegacy("mig-plain", "");
+
+    const r = run(bin, ["install"], { env });
+    expect(r.status).toBe(0);
+    // the shadowing core.hooksPath is gone, so templateDir hooks take effect
+    expect(get(env, "core.hooksPath")).toBe("");
+    expect(get(env, "init.templateDir")).toBe(join(x, "ghostq", "template"));
+    expect(fs.stat(legacyHooks)).rejects.toThrow();
+  });
+
+  test("install restores a core.hooksPath the legacy install had shadowed", async () => {
+    const userHooks = join(tmp, "mig-user-hooks");
+    await fs.mkdir(userHooks, { recursive: true });
+    const { env } = await setUpLegacy("mig-restore", `${userHooks}\n`);
+
+    const r = run(bin, ["install"], { env });
+    expect(r.status).toBe(0);
+    expect(get(env, "core.hooksPath")).toBe(userHooks);
+  });
+});
