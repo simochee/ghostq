@@ -112,15 +112,11 @@ coexist with no caveat.
 > worktrees** of that repo — run `ghostq apply` in the new worktree by hand.
 > Clones, and every other hook, are unaffected.
 >
-> A second, separate failure mode: some hook managers set a repo-local
-> `core.hooksPath` (husky does this). Since git honours only one hooks
-> directory, that changes which hooks git runs and can keep ghostq's seeded
-> `.git/hooks` hook from firing for that repo — for **clones and worktrees
-> both**, not just new worktrees. Check with `git config --local --get
-> core.hooksPath`; unset it (or reconfigure/migrate off that hook manager) to
-> restore ghostq. Not every manager does this — some write into `.git/hooks`
-> directly and set no `core.hooksPath` — so check the config for whichever one
-> you use.
+> A second, separate case: some managers set a repo-local `core.hooksPath`
+> (husky does). git then reads hooks only from there, not `.git/hooks`, so
+> ghostq's seeded hook never fires — for **clones and worktrees both**. Check
+> with `git config --local --get core.hooksPath` and unset it to restore
+> ghostq.
 
 ## 🩺 Troubleshooting
 
@@ -133,28 +129,22 @@ never fires.
    somewhere else, means `ghostq install` never ran (or something overwrote the
    setting) — run `ghostq install` and clone/`worktree add` again.
 
-2. **Is a repo-local `core.hooksPath` shadowing the seeded hook?**
-   `git config --local --get core.hooksPath` should print **nothing**. If it
-   prints a path, git reads hooks from there instead of `.git/hooks` — where
-   ghostq seeds its `post-checkout` — so ghostq's hook never fires. Some hook
-   managers set this (husky does). Unset it
-   (`git config --local --unset core.hooksPath`) or reconfigure that hook
-   manager, then run `ghostq apply` once. See the
-   [Coexisting](#-coexisting-with-hook-managers) WARNING for
-   the full picture.
+2. **Is a repo-local `core.hooksPath` set?** `git config --local --get
+   core.hooksPath` should print nothing; a path there shadows `.git/hooks`
+   (where ghostq seeds its hook), so nothing fires. Some managers set it (husky
+   does) — unset it (`git config --local --unset core.hooksPath`) or reconfigure
+   that manager, then run `ghostq apply` once.
 
 3. **Did you clone the repo before installing ghostq?** git templates apply
    only at clone/init time and are never retroactive, so a checkout that
    predates `ghostq install` has no seeded hook. Run `ghostq apply` in it once
    to link the overlay by hand; future clones and worktrees are covered.
 
-4. **Ask ghostq what it sees.** `ghostq status` prints the resolved repo
-   identity, the overlay entry path, and each managed file's link state,
-   changing nothing. Use it to confirm the repo maps to the overlay entry you
-   expect and to spot files that were skipped (e.g. not gitignored) or left
-   alone (a real file where a link would go). A repo with no matching remote
-   identity — no `origin`, or no overlay entry for its `host/user/repo` — is
-   skipped quietly, so that shows up here too.
+4. **Ask ghostq what it sees.** `ghostq status` prints the resolved identity,
+   the overlay entry path, and each file's link state, changing nothing — use
+   it to confirm the repo maps to the entry you expect and to spot skipped
+   files. A repo with no `origin` or no matching overlay entry is skipped
+   quietly, which shows up here too.
 
 ## 🛡️ Safety
 
