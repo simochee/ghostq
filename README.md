@@ -118,9 +118,9 @@ coexist with no caveat.
 > `.git/hooks` hook from firing for that repo — for **clones and worktrees
 > both**, not just new worktrees. Check with `git config --local --get
 > core.hooksPath`; unset it (or reconfigure/migrate off that hook manager) to
-> restore ghostq. lefthook writes into `.git/hooks` directly and sets no
-> `core.hooksPath`, so it isn't affected; other (or newer) managers may differ,
-> so check the config.
+> restore ghostq. Not every manager does this — some write into `.git/hooks`
+> directly and set no `core.hooksPath` — so check the config for whichever one
+> you use.
 
 ## 🩺 Troubleshooting
 
